@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowderLead · 粉体线索与样品管理</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23131c2e'/%3E%3Cpath d='M14 18h36M20 18v8a4 4 0 0 0 8 0v-8M28 18v14a4 4 0 0 0 8 0V18M36 18v8a4 4 0 0 0 8 0v-8' stroke='%2322d3a7' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3Cpath d='M14 46h36M18 46v6M46 46v6' stroke='%23f5b942' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--bg2:#0b1220;--card:#16203a;--card2:#121a30;
+  --line:rgba(148,178,255,.14);--line2:rgba(148,178,255,.07);
+  --txt:#e8eefc;--mut:#8ea0c4;--dim:#5d6f94;
+  --cyan:#22d3a7;--cyan2:#5eead4;--gold:#f5b942;--blue:#4f8cff;
+  --red:#ff5d73;--amber:#ff9f43;--purple:#a78bfa;
+  --mono:"SF Mono",Consolas,Menlo,monospace;
+}
+html,body{height:100%}
+body{font-family:"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--txt);display:flex;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:linear-gradient(rgba(148,178,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(148,178,255,.04) 1px,transparent 1px);background-size:48px 48px}
+/* 导航 */
+#nav{width:206px;background:linear-gradient(180deg,var(--bg2),#0d1526);border-right:1px solid var(--line2);flex-shrink:0;display:flex;flex-direction:column;height:100vh;position:sticky;top:0;z-index:2}
+#nav .logo{display:flex;align-items:center;gap:11px;padding:22px 16px 18px;border-bottom:1px solid var(--line2)}
+#nav .logo svg{width:36px;height:36px;flex-shrink:0}
+#nav .logo .nm{font-size:15px;font-weight:900;color:#fff;letter-spacing:.3px}
+#nav .logo .sb{font-size:9.5px;color:var(--mut);margin-top:2px;letter-spacing:2.5px}
+#nav .grp{font-size:10px;color:var(--dim);padding:16px 16px 6px;letter-spacing:2px}
+.nitem{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;color:var(--mut);cursor:pointer;border-left:3px solid transparent;transition:background .15s,color .15s;user-select:none}
+.nitem:hover{background:rgba(148,178,255,.05);color:var(--txt)}
+.nitem.on{background:linear-gradient(90deg,rgba(34,211,167,.1),transparent);border-left-color:var(--cyan);color:#fff;font-weight:700}
+.nitem svg{width:17px;height:17px;flex-shrink:0;opacity:.9}
+.nitem .bdg{margin-left:auto;background:rgba(255,93,115,.18);color:var(--red);font-size:10.5px;font-weight:800;padding:1px 8px;border-radius:20px;font-family:var(--mono)}
+#nav .foot{margin-top:auto;padding:15px 16px;border-top:1px solid var(--line2);font-size:10.5px;color:var(--dim);line-height:2}
+#nav .foot b{color:var(--gold);font-family:var(--mono)}
+/* 主区 */
+#main{flex:1;min-width:0;display:flex;flex-direction:column;height:100vh;position:relative;z-index:1}
+#top{display:flex;align-items:center;gap:10px;padding:14px 24px;border-bottom:1px solid var(--line2);flex-wrap:wrap}
+#top .tt{font-size:18px;font-weight:900}
+#top .ts{font-size:11.5px;color:var(--mut)}
+#top .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,var(--cyan),#0ea888);color:#04211a;border:none;padding:8px 15px;border-radius:9px;font-size:12.5px;font-weight:800;cursor:pointer;transition:transform .12s,box-shadow .15s;font-family:inherit}
+.btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(34,211,167,.25)}
+.btn:active{transform:translateY(0)}
+.btn.gold{background:linear-gradient(135deg,var(--gold),#e09b2a);color:#1a1204}
+.btn.ghost{background:transparent;color:var(--mut);border:1px solid var(--line);font-weight:600}
+.btn.ghost:hover{color:var(--txt);border-color:rgba(148,178,255,.35);box-shadow:none}
+.btn.sm{padding:5px 10px;font-size:11.5px;border-radius:7px}
+.btn.danger{background:transparent;color:var(--red);border:1px solid rgba(255,93,115,.35);font-weight:600}
+#content{flex:1;overflow-y:auto;padding:20px 24px 60px;max-width:1220px;width:100%;margin:0 auto}
+/* 卡片 */
+.grid{display:grid;gap:14px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+.card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:15px 17px;position:relative;overflow:hidden}
+.card .ch{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#c9d6f2;margin-bottom:12px}
+.card .ch .bar{width:3px;height:14px;background:linear-gradient(180deg,var(--cyan),var(--gold));border-radius:2px}
+.kpi{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .k{font-size:11px;color:var(--mut)}
+.kpi .v{font-size:26px;font-weight:900;margin-top:5px;font-family:var(--mono);letter-spacing:-.5px}
+.kpi .d{font-size:11px;color:var(--dim);margin-top:3px}
+.kpi .v.cyan{color:var(--cyan)}.kpi .v.gold{color:var(--gold)}.kpi .v.blue{color:var(--blue)}.kpi .v.red{color:var(--red)}
+.empty{text-align:center;color:var(--dim);font-size:12.5px;padding:30px 0;line-height:2}
+.hint{font-size:11px;color:var(--dim);line-height:1.8}
+.sec{font-size:12px;color:var(--mut);letter-spacing:2px;margin:18px 0 10px;display:flex;align-items:center;gap:10px}
+.sec .ln{flex:1;height:1px;background:var(--line2)}
+/* 工具栏 */
+.tools{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.inp,.sel{padding:8px 11px;border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;background:var(--card2);color:var(--txt)}
+.inp:focus,.sel:focus{outline:none;border-color:var(--cyan)}
+.inp::placeholder{color:var(--dim)}
+.inp{min-width:180px}.inp.small{min-width:120px}
+.sel{cursor:pointer}
+/* 表格 */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;min-width:760px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:middle}
+th{color:var(--mut);font-weight:500;font-size:11px;letter-spacing:.5px;white-space:nowrap}
+td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+td .main{font-weight:700;color:var(--txt);font-size:13px}
+td .sub{font-size:11px;color:var(--dim);margin-top:2px}
+tr:hover td{background:rgba(148,178,255,.03)}
+.chip{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.c-cyan{background:rgba(34,211,167,.14);color:var(--cyan)}
+.c-gold{background:rgba(245,185,66,.14);color:var(--gold)}
+.c-blue{background:rgba(79,140,255,.14);color:var(--blue)}
+.c-red{background:rgba(255,93,115,.14);color:var(--red)}
+.c-amber{background:rgba(255,159,67,.14);color:var(--amber)}
+.c-purple{background:rgba(167,139,250,.14);color:var(--purple)}
+.c-gray{background:rgba(148,178,255,.12);color:var(--mut)}
+.rowop{display:flex;gap:4px;justify-content:flex-end}
+.iconb{width:26px;height:26px;border:none;background:transparent;color:var(--dim);cursor:pointer;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;transition:.12s;vertical-align:middle}
+.iconb:hover{background:rgba(148,178,255,.1);color:var(--txt)}
+.iconb svg{width:14px;height:14px}
+.flow{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.flow .step{font-size:10.5px;padding:2px 8px;border-radius:14px;background:rgba(148,178,255,.1);color:var(--mut);white-space:nowrap;cursor:pointer}
+.flow .step.cur{background:rgba(34,211,167,.16);color:var(--cyan);font-weight:700}
+.flow .arr{color:var(--dim);font-size:10px}
+/* 待办 */
+.todo{display:flex;align-items:flex-start;gap:11px;padding:11px 13px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:rgba(148,178,255,.03)}
+.todo .ic{width:34px;height:34px;border-radius:9px;background:rgba(255,159,67,.12);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.todo .ic svg{width:17px;height:17px;stroke:var(--amber)}
+.todo .inf{flex:1;min-width:0}
+.todo .inf .n{font-size:13px;font-weight:700}
+.todo .inf .m{font-size:11px;color:var(--dim);margin-top:2px;line-height:1.6}
+.todo .tag{flex-shrink:0;align-self:center}
+/* 弹窗 */
+.modal{position:fixed;inset:0;background:rgba(5,9,18,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.show{display:flex}
+.modal .box{background:var(--card);border:1px solid var(--line);border-radius:15px;width:100%;max-width:560px;padding:20px 22px;max-height:90vh;overflow-y:auto}
+.modal .box h3{font-size:15.5px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.mbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.mrow{margin-bottom:12px}
+.mrow label{display:block;font-size:11.5px;color:var(--mut);margin-bottom:5px}
+.mrow2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:620px){.mrow2{grid-template-columns:1fr}}
+/* toast */
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(16px);background:rgba(13,21,38,.96);border:1px solid var(--line);color:#fff;padding:11px 22px;border-radius:10px;font-size:13px;opacity:0;transition:.25s;z-index:80;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.4);font-weight:600}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.gold{border-color:rgba(245,185,66,.5)}
+.toast.cyan{border-color:rgba(34,211,167,.5)}
+/* 移动端 */
+@media(max-width:880px){
+  #nav{width:60px}
+  #nav .logo .nm,#nav .logo .sb,#nav .grp,#nav .nitem span,#nav .foot span{display:none}
+  .nitem{justify-content:center;padding:13px 0;border-left:none;border-bottom:2px solid transparent}
+  .nitem.on{border-left:none;border-bottom-color:var(--cyan)}
+  #top{padding:12px 14px}
+  #content{padding:15px 13px 50px}
+  .inp{min-width:130px}
+}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<nav id="nav">
+  <div class="logo">
+    <svg viewBox="0 0 64 64" fill="none"><path d="M14 18h36M20 18v8a4 4 0 0 0 8 0v-8M28 18v14a4 4 0 0 0 8 0V18M36 18v8a4 4 0 0 0 8 0v-8" stroke="#22d3a7" stroke-width="4" stroke-linecap="round"/><path d="M14 46h36M18 46v6M46 46v6" stroke="#f5b942" stroke-width="4" stroke-linecap="round"/></svg>
+    <div><div class="nm">PowderLead</div><div class="sb">粉体线索管理</div></div>
+  </div>
+  <div class="grp">业务管理</div>
+  <div class="nitem on" data-v="dash"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg><span>经营看板</span></div>
+  <div class="nitem" data-v="leads"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c.6-3.4 3.2-5.3 6-5.3s5.4 1.9 6 5.3"/><path d="M16 3.5a3 3 0 0 1 0 5M18.5 15c.9 1 1.5 2.4 1.6 4"/></svg><span>客户线索</span><span class="bdg" id="bdgLeads" style="display:none"></span></div>
+  <div class="nitem" data-v="samples"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg><span>样品台账</span><span class="bdg" id="bdgSamples" style="display:none"></span></div>
+  <div class="nitem" data-v="todos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.3V17h6v-1.2c0-.9.3-1.7 1-2.3A6 6 0 0 0 12 3z"/><path d="M10 21h4"/></svg><span>回访提醒</span><span class="bdg" id="bdgTodos" style="display:none"></span></div>
+  <div class="grp">数据</div>
+  <div class="nitem" data-v="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>数据管理</span></div>
+  <div class="foot"><span>客户线索 <b id="navLeads">0</b><br>样品台账 <b id="navSamples">0</b><br>待回访 <b id="navTodos" style="color:#ff5d73">0</b></span></div>
+</nav>
+<main id="main">
+  <div id="top">
+    <div class="tt" id="pageTitle">经营看板</div>
+    <div class="ts" id="pageSub"></div>
+    <div class="sp"></div>
+    <button class="btn gold sm" onclick="openLeadModal()">+ 新增线索</button>
+    <button class="btn sm" onclick="openSampleModal()">+ 寄样登记</button>
+  </div>
+  <div id="content"></div>
+</main>
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+/* =================================================================
+   PowderLead · 粉体行业展会线索 & 样品管理系统
+   数据保存在本机浏览器，可导出 CSV / 导入导出 JSON 备份
+   ================================================================= */
+const DAY = 86400000, KEY = "powderLead_v1";
+const PRODUCTS = ["硅微粉","氧化铝","熔融石英","氢氧化铝","其他"];
+const SOURCES = ["中国粉体展","上海慕尼黑分析展","广州建材展","线上询盘","老客户转介","其他展会"];
+const LEVELS = {high:"高意向", mid:"中意向", low:"低意向"};
+const LSTATUS = {new:"新线索", follow:"跟进中", sample:"已寄样", deal:"已成交", lost:"已流失"};
+const SSTATUS = ["待寄出","已寄出","已签收","已回访"];
+const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1).toString().padStart(2,"0")+"-"+d.getDate().toString().padStart(2,"0"); };
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const today = todayStr();
+let S = null;
+function defaultData(){
+  const d = today, d1 = new Date(); d1.setDate(d1.getDate()-6); const s1 = d1.toISOString().slice(0,10);
+  const d2 = new Date(); d2.setDate(d2.getDate()-12); const s2 = d2.toISOString().slice(0,10);
+  const d3 = new Date(); d3.setDate(d3.getDate()-2); const s3 = d3.toISOString().slice(0,10);
+  return { v:1, clients:[
+    {id:uid(), company:"苏州微纳新材料有限公司", contact:"王工", phone:"138****2211", source:"中国粉体展", product:"硅微粉", need:"球形硅微粉，D50 3-5μm，月需求 20 吨，正在比价", level:"high", status:"sample", createdAt:s2, followUps:[{date:s2, content:"展会现场沟通，寄样安排"} ,{date:s3, content:"样品已寄出，顺丰 SF1234567890，约 2 天后到"}]},
+    {id:uid(), company:"无锡蓝海电子材料", contact:"李经理", phone:"139****8834", source:"线上询盘", product:"氧化铝", need:"高纯氧化铝 99.99%，用于电子陶瓷，先要 2kg 样品", level:"mid", status:"follow", createdAt:s1, followUps:[{date:s1, content:"线上咨询，已发规格书"}]},
+    {id:uid(), company:"常州鼎峰研磨", contact:"陈总", phone:"137****5522", source:"上海慕尼黑分析展", product:"熔融石英", need:"熔融石英粉，200 目，询价 5 吨", level:"mid", status:"new", createdAt:s1, followUps:[]},
+    {id:uid(), company:"南京航天河海复合材料", contact:"张老师", phone:"025****1190", source:"老客户转介", product:"氢氧化铝", need:"阻燃用氢氧化铝，细度 5000 目，季度采购", level:"high", status:"new", createdAt:d3, followUps:[]},
+    {id:uid(), company:"浙江精工电子", contact:"周采购", phone:"136****7766", source:"中国粉体展", product:"硅微粉", need:"结晶硅微粉，要求杂质低，先确认批次检测报告", level:"low", status:"follow", createdAt:d3, followUps:[]}
+  ], samples:[
+    {id:uid(), code:"YP-2026-001", clientId:null, company:"苏州微纳新材料", product:"球形硅微粉", spec:"D50 3-5μm", qty:"500g", sentDate:s2, logistics:"顺丰 SF1234567890", status:"已寄出", note:"附检测报告"},
+    {id:uid(), code:"YP-2026-002", clientId:null, company:"无锡蓝海电子材料", product:"高纯氧化铝", spec:"99.99%", qty:"2kg", sentDate:today, logistics:"", status:"待寄出", note:"等客户确认收货地址"}
+  ], config:{company:"晶晶无机粉体", remindDays:5} };
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function load(){
+  try{ const r = localStorage.getItem(KEY); if(r) S = JSON.parse(r); }catch(e){}
+  if(!S){ S = defaultData(); save(); }
+}
+/* 待办计算 */
+function daysAgo(dateStr){
+  const d = new Date(dateStr + "T00:00:00"); if(isNaN(d)) return 0;
+  return Math.max(0, Math.floor((new Date().setHours(0,0,0,0) - d.getTime()) / DAY));
+}
+function todoList(){
+  const todos = [];
+  for(const c of S.clients){
+    const last = c.followUps.length ? c.followUps[c.followUps.length-1].date : c.createdAt;
+    const ago = daysAgo(last);
+    if(c.status === "new" && ago >= 2) todos.push({type:"lead", c, ago, txt:"新线索超过 " + ago + " 天未跟进", level:c.level});
+    else if(c.status === "follow" && ago >= 3) todos.push({type:"lead", c, ago, txt:"跟进中客户 " + ago + " 天无新进展", level:c.level});
+  }
+  for(const s of S.samples){
+    if(s.status === "已寄出"){
+      const ago = daysAgo(s.sentDate);
+      if(ago >= S.config.remindDays) todos.push({type:"sample", s, ago, txt:"样品已寄出 " + ago + " 天，待确认签收 / 回访"});
+    }
+  }
+  todos.sort((a,b)=>b.ago-a.ago);
+  return todos;
+}
+/* 统计 */
+function stat(){
+  const cs = S.clients, ss = S.samples, m = new Date();
+  const mStart = m.getFullYear()+"-"+((m.getMonth()+1).toString().padStart(2,"0"))+"-01";
+  const monthNew = cs.filter(c=>c.createdAt >= mStart).length;
+  const bySrc = {}; for(const c of cs){ bySrc[c.source] = (bySrc[c.source]||0)+1; }
+  const byProd = {}; for(const c of cs){ byProd[c.product] = (byProd[c.product]||0)+1; }
+  const byStatus = {}; for(const c of cs){ byStatus[c.status] = (byStatus[c.status]||0)+1; }
+  const dealt = cs.filter(c=>c.status==="deal").length;
+  const dealRate = cs.length ? Math.round(dealt/cs.length*100) : 0;
+  return {total:cs.length, monthNew, sampleTotal:ss.length, dealt, dealRate, bySrc, byProd, byStatus, todos:todoList().length};
+}
+/* 图表 */
+function prep(cv){ const dpr=Math.min(window.devicePixelRatio||1,2); const r=cv.getBoundingClientRect();
+  cv.width=Math.max(10,Math.round(r.width*dpr)); cv.height=Math.max(10,Math.round(r.height*dpr));
+  const ctx=cv.getContext("2d"); ctx.setTransform(dpr,0,0,dpr,0,0); return {ctx,w:r.width,h:r.height}; }
+function hbar(cv, data, color){
+  const {ctx,w,h}=prep(cv); ctx.clearRect(0,0,w,h);
+  const keys=Object.keys(data), max=Math.max(1,...keys.map(k=>data[k]));
+  const rh=Math.min(26,(h-10)/Math.max(1,keys.length));
+  keys.forEach((k,i)=>{
+    const y=6+i*rh, bw=(w-96)*data[k]/max;
+    ctx.fillStyle="#5d6f94"; ctx.font="11px 'Noto Sans SC',sans-serif"; ctx.textAlign="left";
+    ctx.fillText(k.length>6?k.slice(0,6)+"…":k, 0, y+rh/2+4);
+    const grd=ctx.createLinearGradient(0,0,bw,0); grd.addColorStop(0,color); grd.addColorStop(1,color+"88");
+    ctx.fillStyle=grd;
+    ctx.beginPath(); const rr=Math.min(4,rh/2);
+    ctx.moveTo(96,y+rr); ctx.arcTo(96,y,96+bw,y,rr); ctx.arcTo(96+bw,y,96+bw,y+rh,rr); ctx.arcTo(96+bw,y+rh,96,y+rh,rr); ctx.arcTo(96,y+rh,96,y,rr); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#c9d6f2"; ctx.font="10.5px SF Mono,Consolas,monospace";
+    ctx.fillText(data[k], 96+bw+6, y+rh/2+4);
+  });
+}
+function pie(cv, data, colors){
+  const {ctx,w,h}=prep(cv); ctx.clearRect(0,0,w,h);
+  const keys=Object.keys(data); const total=Math.max(1,keys.reduce((a,k)=>a+data[k],0));
+  const cx=w/2, cy=h/2, R=Math.min(w,h)/2-8;
+  let a0=-Math.PI/2;
+  keys.forEach((k,i)=>{
+    const a1=a0+Math.PI*2*data[k]/total;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length]; ctx.fill();
+    ctx.strokeStyle="#0f172a"; ctx.lineWidth=2; ctx.stroke();
+    a0=a1;
+  });
+  ctx.fillStyle="#e8eefc"; ctx.font="900 15px SF Mono,Consolas,monospace"; ctx.textAlign="center";
+  ctx.fillText(total, cx, cy+1);
+  ctx.fillStyle="#5d6f94"; ctx.font="10px 'Noto Sans SC',sans-serif"; ctx.fillText("线索总数", cx, cy+16);
+}
+/* ============ 视图渲染 ============ */
+let VIEW="dash";
+const $ = id=>document.getElementById(id);
+const esc = s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const lvChip = l => `<span class="chip c-${l==="high"?"red":l==="mid"?"amber":"gray"}">${LEVELS[l]}</span>`;
+const stChip = st => `<span class="chip ${st==="new"?"c-blue":st==="follow"?"c-cyan":st==="sample"?"c-gold":st==="deal"?"c-purple":"c-gray"}">${LSTATUS[st]}</span>`;
+const pChip = p => `<span class="chip c-cyan">${esc(p)}</span>`;
+function renderDash(){
+  const st = stat();
+  const byStatusOrder = [["new","新线索"],["follow","跟进中"],["sample","已寄样"],["deal","已成交"],["lost","已流失"]];
+  const sData = {}; for(const [k] of byStatusOrder) sData[LSTATUS[k]] = st.byStatus[k]||0;
+  $("content").innerHTML = `
+  <div class="grid g4" style="margin-bottom:14px">
+    <div class="kpi"><div class="k">客户线索总数</div><div class="v cyan">${st.total}</div><div class="d">本月新增 ${st.monthNew} 条</div></div>
+    <div class="kpi"><div class="k">样品台账</div><div class="v gold">${st.sampleTotal}</div><div class="d">${S.samples.filter(x=>x.status==="已寄出").length} 单在途</div></div>
+    <div class="kpi"><div class="k">已成交</div><div class="v blue">${st.dealt}</div><div class="d">成交率 ${st.dealRate}%</div></div>
+    <div class="kpi"><div class="k">待回访事项</div><div class="v red">${st.todos}</div><div class="d">未跟进线索 / 在途样品</div></div>
+  </div>
+  <div class="grid g2" style="margin-bottom:14px">
+    <div class="card"><div class="ch"><span class="bar"></span>线索来源分布</div><canvas id="srcCv" style="width:100%;height:210px"></canvas></div>
+    <div class="card"><div class="ch"><span class="bar"></span>产品咨询分布</div><canvas id="prodCv" style="width:100%;height:210px"></canvas></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><div class="ch"><span class="bar"></span>线索状态漏斗</div><canvas id="stCv" style="width:100%;height:210px"></canvas></div>
+    <div class="card">
+      <div class="ch"><span class="bar"></span>业务速览</div>
+      <div class="tbl-wrap"><table><colgroup><col style="width:34%"><col style="width:26%"><col style="width:20%"><col style="width:20%"></colgroup>
+        <thead><tr><th>客户</th><th>产品</th><th>意向</th><th>状态</th></tr></thead><tbody>
+        ${S.clients.slice(0,5).map(c=>`<tr><td><span class="main">${esc(c.company)}</span><div class="sub">${esc(c.contact)}</div></td><td>${pChip(c.product)}</td><td>${lvChip(c.level)}</td><td>${stChip(c.status)}</td></tr>`).join("")}
+      </tbody></table></div>
+    </div>
+  </div>`;
+  requestAnimationFrame(()=>{
+    hbar($("srcCv"), st.bySrc, "#22d3a7");
+    pie($("prodCv"), st.byProd, ["#22d3a7","#f5b942","#4f8cff","#a78bfa","#ff9f43"]);
+    hbar($("stCv"), sData, "#f5b942");
+  });
+}
+function renderLeads(){
+  const fSrc = $("fSrc").value, fProd = $("fProd").value, fSt = $("fSt").value, kw = ($("fKw").value||"").trim().toLowerCase();
+  let list = S.clients.slice();
+  if(fSrc) list = list.filter(c=>c.source===fSrc);
+  if(fProd) list = list.filter(c=>c.product===fProd);
+  if(fSt) list = list.filter(c=>c.status===fSt);
+  if(kw) list = list.filter(c=>(c.company+c.contact+c.phone+c.need).toLowerCase().includes(kw));
+  $("content").innerHTML = `
+  <div class="tools">
+    <input class="inp" id="fKw" placeholder="搜索公司 / 联系人 / 电话 / 需求">
+    <select class="sel" id="fSrc"><option value="">全部来源</option>${SOURCES.concat(Object.keys(stat().bySrc).filter(x=>!SOURCES.includes(x))).map(s=>`<option ${s===fSrc?"selected":""}>${esc(s)}</option>`).join("")}</select>
+    <select class="sel" id="fProd"><option value="">全部产品</option>${PRODUCTS.map(p=>`<option ${p===fProd?"selected":""}>${esc(p)}</option>`).join("")}</select>
+    <select class="sel" id="fSt"><option value="">全部状态</option>${Object.keys(LSTATUS).map(k=>`<option ${k===fSt?"selected":""} value="${k}">${LSTATUS[k]}</option>`).join("")}</select>
+    <button class="btn ghost sm" onclick="renderLeads()">应用筛选</button>
+    <span class="hint" style="margin-left:auto">共 ${list.length} 条</span>
+  </div>
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <colgroup><col style="width:20%"><col style="width:12%"><col style="width:12%"><col style="width:11%"><col style="width:14%"><col style="width:9%"><col style="width:10%"><col style="width:12%"></colgroup>
+    <thead><tr><th>公司 / 联系人</th><th>来源</th><th>产品</th><th>意向</th><th>需求</th><th>状态</th><th>最近跟进</th><th>操作</th></tr></thead><tbody>
+    ${list.length ? list.map(c=>{
+      const last = c.followUps.length ? c.followUps[c.followUps.length-1].date : "—";
+      return `<tr>
+        <td><span class="main">${esc(c.company)}</span><div class="sub">${esc(c.contact)} · ${esc(c.phone)}</div></td>
+        <td>${esc(c.source)}</td><td>${pChip(c.product)}</td><td>${lvChip(c.level)}</td>
+        <td style="white-space:normal;line-height:1.5">${esc(c.need)}</td><td>${stChip(c.status)}</td>
+        <td style="font-family:var(--mono);font-size:11px;color:var(--dim)">${last}</td>
+        <td><div class="rowop">
+          <button class="iconb" title="跟进" onclick="openFollow(${JSON.stringify(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-4-1L3 20l1.1-5a8.4 8.4 0 1 1 16.9-3.5z"/></svg></button>
+          <button class="iconb" title="编辑" onclick="openLeadModal('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4L8 20l-5 1 1-5z"/></svg></button>
+          <button class="iconb" title="删除" onclick="delLead('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+        </div></td></tr>`; }).join("") : `<tr><td colspan="8"><div class="empty">没有匹配的线索，点击右上角「新增线索」登记</div></td></tr>`}
+    </tbody></table></div></div>`;
+  ["fKw","fSrc","fProd","fSt"].forEach(id=>{ const el=$(id); if(el){ el.onchange=()=>renderLeads(); el.oninput=()=>renderLeads(); } });
+}
+function renderSamples(){
+  const fSt = $("fSt2").value||"";
+  let list = S.samples.slice().sort((a,b)=>(a.status==="待寄出"?0:1)-(b.status==="待寄出"?0:1));
+  if(fSt) list = list.filter(s=>s.status===fSt);
+  $("content").innerHTML = `
+  <div class="tools">
+    <select class="sel" id="fSt2"><option value="">全部状态</option>${SSTATUS.map(s=>`<option ${s===fSt?"selected":""}>${s}</option>`).join("")}</select>
+    <button class="btn ghost sm" onclick="renderSamples()">应用筛选</button>
+    <span class="hint" style="margin-left:auto">共 ${list.length} 单 · 在途 ${S.samples.filter(x=>x.status==="已寄出").length} 单</span>
+  </div>
+  <div class="card" style="padding:0"><div class="tbl-wrap"><table>
+    <colgroup><col style="width:13%"><col style="width:17%"><col style="width:13%"><col style="width:12%"><col style="width:9%"><col style="width:12%"><col style="width:15%"><col style="width:9%"></colgroup>
+    <thead><tr><th>样品编号</th><th>客户</th><th>产品</th><th>规格</th><th>数量</th><th>寄出日期</th><th>状态（点击流转）</th><th>操作</th></tr></thead><tbody>
+    ${list.length ? list.map(s=>`<tr>
+      <td style="font-family:var(--mono);color:var(--gold);font-weight:700">${esc(s.code)}</td>
+      <td><span class="main">${esc(s.company)}</span></td><td>${pChip(s.product)}</td>
+      <td>${esc(s.spec)}</td><td style="font-family:var(--mono)">${esc(s.qty)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--dim)">${s.sentDate||"—"}</td>
+      <td><div class="flow">${SSTATUS.map((st,i)=>`<span class="step ${s.status===st?"cur":""}" onclick="nextSample('${s.id}')">${st}</span>${i<SSTATUS.length-1?'<span class="arr">›</span>':""}`).join("")}</div></td>
+      <td><div class="rowop">
+        <button class="iconb" title="编辑" onclick="openSampleModal('${s.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3l4 4L8 20l-5 1 1-5z"/></svg></button>
+        <button class="iconb" title="删除" onclick="delSample('${s.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+      </div></td></tr>`).join("") : `<tr><td colspan="8"><div class="empty">暂无样品记录，点击右上角「寄样登记」</div></td></tr>`}
+    </tbody></table></div></div>`;
+}
+function nextSample(id){
+  const s = S.samples.find(x=>x.id===id); if(!s) return;
+  const i = SSTATUS.indexOf(s.status);
+  if(i < SSTATUS.length-1){ s.status = SSTATUS[i+1]; save(); render(); toast("样品状态已更新：" + s.status, "cyan"); }
+}
+function renderTodos(){
+  const todos = todoList();
+  $("content").innerHTML = `
+  <div class="hint" style="margin-bottom:12px">系统按以下规则自动生成提醒：新线索 ≥2 天未跟进、跟进中客户 ≥3 天无新进展、已寄出样品 ≥${S.config.remindDays} 天未确认签收。</div>
+  ${todos.length ? todos.map(t=>{
+    const c = t.c, s = t.s;
+    return `<div class="todo">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+      <div class="inf"><div class="n">${esc(c?c.company:(s?s.company:""))} · ${esc(t.txt)}</div>
+      <div class="m">${c?`${esc(c.contact)} ${esc(c.phone)} · ${esc(c.product)} · ${LSTATUS[c.status]}`:(s?`${esc(s.code)} · ${esc(s.product)} · 物流 ${esc(s.logistics||"—")}`:"")}</div></div>
+      <div class="tag"><button class="btn sm ${c?"gold":"cyan"}" onclick="${c?`openFollow('${c.id}')`:`openSampleModal('${s.id}')`}">${c?"去跟进":"处理样品"}</button></div>
+    </div>`; }).join("")
+  : `<div class="card"><div class="ch"><span class="bar"></span>当前无待办</div><div class="empty">所有线索与样品都在跟进节奏内，保持住。</div></div>`}`;
+}
+function renderData(){
+  $("content").innerHTML = `
+  <div class="grid g2">
+    <div class="card"><div class="ch"><span class="bar"></span>数据备份与恢复</div>
+      <div class="hint" style="margin-bottom:12px">系统数据保存在当前浏览器中。换电脑、清缓存前请先导出 JSON 备份；导入后数据整体恢复。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn" onclick="exportJSON()">导出备份 JSON</button>
+        <button class="btn ghost" onclick="document.getElementById('impFile').click()">导入备份 JSON</button>
+        <input type="file" id="impFile" accept=".json" style="display:none" onchange="importJSON(event)">
+      </div>
+      <div class="sec" style="margin-top:4px"><b>导出 Excel</b> <span class="ln"></span></div>
+      <div class="hint" style="margin-bottom:12px">客户线索与样品台账可分别导出为 CSV（Excel 可直接打开，中文不乱码）。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn gold sm" onclick="exportLeadsCSV()">导出客户线索 CSV</button>
+        <button class="btn gold sm" onclick="exportSamplesCSV()">导出样品台账 CSV</button>
+      </div>
+    </div>
+    <div class="card"><div class="ch"><span class="bar"></span>系统信息</div>
+      <table><colgroup><col style="width:40%"><col style="width:60%"></colgroup>
+        <tbody>
+          <tr><td style="color:var(--mut)">企业名称</td><td><b>${esc(S.config.company)}</b></td></tr>
+          <tr><td style="color:var(--mut)">回访提醒阈值</td><td><b>寄出后 ${S.config.remindDays} 天</b></td></tr>
+          <tr><td style="color:var(--mut)">客户线索</td><td><b>${S.clients.length} 条</b></td></tr>
+          <tr><td style="color:var(--mut)">样品台账</td><td><b>${S.samples.length} 单</b></td></tr>
+          <tr><td style="color:var(--mut)">数据存储</td><td style="font-family:var(--mono);font-size:11px;color:var(--dim)">localStorage · 本机</td></tr>
+          <tr><td style="color:var(--mut)">版本</td><td style="font-family:var(--mono);font-size:11px;color:var(--dim)">PowderLead v1.0</td></tr>
+        </tbody></table>
+      <div class="sec" style="margin-top:14px"><b>数据重置</b> <span class="ln"></span></div>
+      <button class="btn danger sm" onclick="resetAll()">清空全部数据（恢复演示数据）</button>
+    </div>
+  </div>`;
+}
+function render(){
+  const ts = {dash:["经营看板","展会线索 · 样品寄送 · 回访提醒，一屏掌握"], leads:["客户线索","展会与线上线索统一登记、跟进、流转"], samples:["样品台账","样品寄送全流程跟踪，状态一栏流转"], todos:["回访提醒","系统自动汇总逾期线索与在途样品"], data:["数据管理","备份、迁移与导出"]};
+  $("pageTitle").textContent = ts[VIEW][0];
+  $("pageSub").textContent = ts[VIEW][1];
+  const todos = todoList().length;
+  $("navLeads").textContent = S.clients.length;
+  $("navSamples").textContent = S.samples.length;
+  $("navTodos").textContent = todos;
+  $("bdgLeads").style.display = S.clients.filter(c=>c.status==="new").length ? "" : "none";
+  $("bdgLeads").textContent = S.clients.filter(c=>c.status==="new").length;
+  $("bdgSamples").style.display = S.samples.filter(s=>s.status==="待寄出").length ? "" : "none";
+  $("bdgSamples").textContent = S.samples.filter(s=>s.status==="待寄出").length;
+  $("bdgTodos").style.display = todos ? "" : "none";
+  $("bdgTodos").textContent = todos;
+  if(VIEW==="dash") renderDash();
+  else if(VIEW==="leads") renderLeads();
+  else if(VIEW==="samples") renderSamples();
+  else if(VIEW==="todos") renderTodos();
+  else renderData();
+  document.querySelectorAll(".nitem").forEach(n=>n.classList.toggle("on", n.dataset.v===VIEW));
+}
+function go(v){ VIEW = v; render(); }
+/* ============ 弹窗：线索 ============ */
+function openLeadModal(id){
+  const c = id ? S.clients.find(x=>x.id===id) : null;
+  const fu = c && c.followUps.length ? c.followUps[c.followUps.length-1] : null;
+  $("modalBox").innerHTML = `<h3>${c?"编辑线索":"新增客户线索"}<button class="iconb" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></h3>
+  <div class="mrow"><label>公司名称 *</label><input class="inp" id="mCompany" value="${c?esc(c.company):""}" placeholder="如：苏州微纳新材料有限公司"></div>
+  <div class="mrow2">
+    <div class="mrow"><label>联系人</label><input class="inp" id="mContact" value="${c?esc(c.contact):""}"></div>
+    <div class="mrow"><label>联系电话</label><input class="inp" id="mPhone" value="${c?esc(c.phone):""}"></div>
+  </div>
+  <div class="mrow2">
+    <div class="mrow"><label>线索来源</label><select class="sel" id="mSource" style="width:100%">${SOURCES.map(s=>`<option ${c&&c.source===s?"selected":""}>${esc(s)}</option>`).join("")}</select></div>
+    <div class="mrow"><label>咨询产品</label><select class="sel" id="mProduct" style="width:100%">${PRODUCTS.map(p=>`<option ${c&&c.product===p?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
+  </div>
+  <div class="mrow2">
+    <div class="mrow"><label>意向等级</label><select class="sel" id="mLevel" style="width:100%">${Object.keys(LEVELS).map(k=>`<option ${c&&c.level===k?"selected":""} value="${k}">${LEVELS[k]}</option>`).join("")}</select></div>
+    <div class="mrow"><label>当前状态</label><select class="sel" id="mStatus" style="width:100%">${Object.keys(LSTATUS).map(k=>`<option ${c&&c.status===k?"selected":""} value="${k}">${LSTATUS[k]}</option>`).join("")}</select></div>
+  </div>
+  <div class="mrow"><label>客户需求 / 备注</label><textarea class="inp" id="mNeed" style="height:74px;resize:vertical">${c?esc(c.need):""}</textarea></div>
+  ${fu?`<div class="mrow"><label>最近跟进（${fu.date}）</label><div class="hint">${esc(fu.content)}</div></div>`:""}
+  <div class="mbtns"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveLead('${id||""}')">${c?"保存修改":"保存线索"}</button></div>`;
+  $("modal").classList.add("show");
+}
+function saveLead(id){
+  const v = id => { const e = $(id); return e ? e.value.trim() : ""; };
+  const company = v("mCompany");
+  if(!company){ toast("请填写公司名称", "gold"); return; }
+  if(id){
+    const c = S.clients.find(x=>x.id===id);
+    Object.assign(c, {company, contact:v("mContact"), phone:v("mPhone"), source:v("mSource"), product:v("mProduct"), level:v("mLevel"), status:v("mStatus"), need:v("mNeed")});
+    toast("线索已更新", "cyan");
+  } else {
+    S.clients.unshift({id:uid(), company, contact:v("mContact"), phone:v("mPhone"), source:v("mSource"), product:v("mProduct"), level:v("mLevel"), status:v("mStatus"), need:v("mNeed"), createdAt:today, followUps:[]});
+    toast("线索已保存", "cyan");
+  }
+  save(); closeModal(); render();
+}
+function openFollow(id){
+  const c = S.clients.find(x=>x.id===id); if(!c) return;
+  $("modalBox").innerHTML = `<h3>跟进 · ${esc(c.company)}<button class="iconb" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></h3>
+  <div style="margin-bottom:12px">${c.followUps.map(f=>`<div style="border-left:2px solid var(--cyan);padding:4px 0 4px 12px;margin-bottom:8px"><div style="font-family:var(--mono);font-size:11px;color:var(--gold)">${f.date}</div><div style="font-size:12.5px;line-height:1.6">${esc(f.content)}</div></div>`).join("")||'<div class="hint">暂无跟进记录</div>'}</div>
+  <div class="mrow"><label>记录本次跟进</label><textarea class="inp" id="fContent" style="height:84px;resize:vertical" placeholder="如：电话沟通，客户对价格有疑虑，约下周寄样…"></textarea></div>
+  <div class="mrow2">
+    <div class="mrow"><label>状态更新</label><select class="sel" id="fStatus" style="width:100%">${Object.keys(LSTATUS).map(k=>`<option ${c.status===k?"selected":""} value="${k}">${LSTATUS[k]}</option>`).join("")}</select></div>
+    <div class="mrow"><label>意向等级</label><select class="sel" id="fLevel" style="width:100%">${Object.keys(LEVELS).map(k=>`<option ${c.level===k?"selected":""} value="${k}">${LEVELS[k]}</option>`).join("")}</select></div>
+  </div>
+  <div class="mbtns"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveFollow('${id}')">保存跟进</button></div>`;
+  $("modal").classList.add("show");
+}
+function saveFollow(id){
+  const c = S.clients.find(x=>x.id===id); if(!c) return;
+  const content = $("fContent").value.trim();
+  if(!content){ toast("请填写跟进内容", "gold"); return; }
+  c.followUps.push({date:today, content});
+  c.status = $("fStatus").value; c.level = $("fLevel").value;
+  save(); closeModal(); render(); toast("跟进已记录", "cyan");
+}
+function delLead(id){
+  if(!confirm("确定删除该客户线索？")) return;
+  S.clients = S.clients.filter(x=>x.id!==id); save(); render(); toast("线索已删除", "cyan");
+}
+/* ============ 弹窗：样品 ============ */
+function openSampleModal(id){
+  const s = id ? S.samples.find(x=>x.id===id) : null;
+  const nextCode = "YP-" + (new Date().getFullYear()) + "-" + String(S.samples.length+1).padStart(3,"0");
+  $("modalBox").innerHTML = `<h3>${s?"编辑样品":"寄样登记"}<button class="iconb" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></h3>
+  <div class="mrow"><label>样品编号</label><input class="inp" id="mCode" value="${s?esc(s.code):nextCode}" style="font-family:var(--mono)"></div>
+  <div class="mrow2">
+    <div class="mrow"><label>客户公司 *</label><input class="inp" id="mCust" list="custList" value="${s?esc(s.company):""}"><datalist id="custList">${S.clients.map(c=>`<option value="${esc(c.company)}">`).join("")}</datalist></div>
+    <div class="mrow"><label>产品</label><select class="sel" id="mSProd" style="width:100%">${PRODUCTS.map(p=>`<option ${s&&s.product===p?"selected":""}>${esc(p)}</option>`).join("")}</select></div>
+  </div>
+  <div class="mrow2">
+    <div class="mrow"><label>规格</label><input class="inp" id="mSpec" value="${s?esc(s.spec):""}" placeholder="如：D50 3-5μm"></div>
+    <div class="mrow"><label>数量</label><input class="inp" id="mQty" value="${s?esc(s.qty):""}" placeholder="如：500g"></div>
+  </div>
+  <div class="mrow2">
+    <div class="mrow"><label>寄出日期</label><input class="inp" id="mSent" type="date" value="${s?(s.sentDate||""):today}"></div>
+    <div class="mrow"><label>物流单号</label><input class="inp" id="mLog" value="${s?esc(s.logistics):""}" placeholder="如：顺丰 SF1234567890"></div>
+  </div>
+  <div class="mrow2">
+    <div class="mrow"><label>状态</label><select class="sel" id="mSSt" style="width:100%">${SSTATUS.map(st=>`<option ${s&&s.status===st?"selected":""}>${st}</option>`).join("")}</select></div>
+    <div class="mrow"><label>备注</label><input class="inp" id="mNote" value="${s?esc(s.note):""}"></div>
+  </div>
+  <div class="mbtns"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveSample('${id||""}')">${s?"保存修改":"登记样品"}</button></div>`;
+  $("modal").classList.add("show");
+}
+function saveSample(id){
+  const v = id => { const e = $(id); return e ? e.value.trim() : ""; };
+  const company = v("mCust");
+  if(!company){ toast("请填写客户公司", "gold"); return; }
+  const data = {code:v("mCode"), company, product:v("mSProd"), spec:v("mSpec"), qty:v("mQty"), sentDate:v("mSent"), logistics:v("mLog"), status:v("mSSt"), note:v("mNote")};
+  if(id){ Object.assign(S.samples.find(x=>x.id===id), data); toast("样品已更新","cyan"); }
+  else { S.samples.unshift({id:uid(), ...data}); toast("样品已登记","cyan"); }
+  save(); closeModal(); render();
+}
+function delSample(id){
+  if(!confirm("确定删除该样品记录？")) return;
+  S.samples = S.samples.filter(x=>x.id!==id); save(); render(); toast("样品已删除","cyan");
+}
+/* ============ 数据导入导出 ============ */
+function exportLeadsCSV(){
+  const rows = [["公司","联系人","电话","来源","产品","意向","状态","需求","创建日期","最近跟进"]];
+  for(const c of S.clients){
+    const last = c.followUps.length ? c.followUps[c.followUps.length-1].date : "";
+    rows.push([c.company,c.contact,c.phone,c.source,c.product,LEVELS[c.level],LSTATUS[c.status],c.need,c.createdAt,last]);
+  }
+  downloadCSV("客户线索_" + today + ".csv", rows);
+}
+function exportSamplesCSV(){
+  const rows = [["样品编号","客户","产品","规格","数量","寄出日期","物流单号","状态","备注"]];
+  for(const s of S.samples) rows.push([s.code,s.company,s.product,s.spec,s.qty,s.sentDate,s.logistics,s.status,s.note]);
+  downloadCSV("样品台账_" + today + ".csv", rows);
+}
+function downloadCSV(name, rows){
+  const csv = "\uFEFF" + rows.map(r=>r.map(c=>{ c=String(c==null?"":c); return /[",\n]/.test(c)?'"'+c.replace(/"/g,'""')+'"':c; }).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  a.download = name; a.click();
+  toast("已导出 " + name, "cyan");
+}
+function exportJSON(){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S, null, 2)], {type:"application/json"}));
+  a.download = "PowderLead_备份_" + today + ".json"; a.click();
+  toast("备份已导出", "cyan");
+}
+function importJSON(ev){
+  const f = ev.target.files[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = () => { try{
+    const d = JSON.parse(r.result);
+    if(!d.clients || !d.samples) throw 0;
+    S = {v:1, clients:d.clients, samples:d.samples, config:d.config||S.config};
+    save(); render(); toast("备份导入成功，共 " + S.clients.length + " 条线索", "cyan");
+  }catch(e){ toast("导入失败：文件格式不正确", "gold"); } };
+  r.readAsText(f, "utf-8");
+  ev.target.value = "";
+}
+function resetAll(){
+  if(!confirm("确定清空全部数据并恢复演示数据？")) return;
+  S = defaultData(); save(); render(); toast("已恢复初始状态", "cyan");
+}
+/* ============ 通用 ============ */
+function closeModal(){ $("modal").classList.remove("show"); }
+let toastTimer = null;
+function toast(msg, cls){
+  const t = $("toast");
+  t.textContent = msg; t.className = "toast show " + (cls||"");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"), 2200);
+}
+document.querySelectorAll(".nitem").forEach(n=>n.addEventListener("click", ()=>go(n.dataset.v)));
+window.go=go; window.openLeadModal=openLeadModal; window.openSampleModal=openSampleModal; window.openFollow=openFollow;
+window.saveLead=saveLead; window.saveFollow=saveFollow; window.delLead=delLead; window.saveSample=saveSample; window.delSample=delSample;
+window.nextSample=nextSample; window.closeModal=closeModal; window.exportLeadsCSV=exportLeadsCSV; window.exportSamplesCSV=exportSamplesCSV;
+window.exportJSON=exportJSON; window.importJSON=importJSON; window.resetAll=resetAll;
+load(); render();
+</script>
+</body>
+</html>
